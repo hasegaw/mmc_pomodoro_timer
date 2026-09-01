@@ -1,0 +1,17 @@
+# Visual Studio / .NET build output
+.vs/
+**/bin/
+**/obj/
+
+# Published packages
+dist/
+dist-single/
+*.zip
+
+# Per-user runtime settings
+pomodoro.ini
+**/pomodoro.ini
+
+# User-specific Visual Studio files
+*.user
+*.suo
