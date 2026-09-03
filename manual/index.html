@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pomodoro Timer 操作マニュアル</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17221d;
+      --muted: #5c6b63;
+      --paper: #f5f7f4;
+      --card: #ffffff;
+      --line: #dbe4de;
+      --green: #159a5b;
+      --green-dark: #0d6c41;
+      --orange: #ff7a21;
+      --amber: #fff2c6;
+      --code: #14231b;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Segoe UI", "Yu Gothic UI", "Meiryo", sans-serif;
+      line-height: 1.75;
+    }
+    a { color: var(--green-dark); }
+    code, pre { font-family: Consolas, "Cascadia Mono", monospace; }
+
+    .hero {
+      padding: 68px 24px 58px;
+      color: white;
+      background:
+        radial-gradient(circle at 84% 18%, rgba(255,122,33,.28), transparent 30%),
+        linear-gradient(135deg, #06142e, #09254e 60%, #123864);
+    }
+    .hero-inner, .layout { width: min(1120px, 100%); margin: 0 auto; }
+    .hero-inner { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 48px; align-items: center; }
+    .hero-copy { min-width: 0; }
+    .app-logo {
+      display: block;
+      width: min(210px, 100%);
+      height: auto;
+      filter: drop-shadow(0 20px 35px rgba(0, 0, 0, .3));
+    }
+    .eyebrow { margin: 0 0 10px; font-weight: 700; letter-spacing: .12em; opacity: .8; }
+    h1 { margin: 0; font-size: clamp(2.2rem, 6vw, 4.6rem); line-height: 1.05; }
+    .lead { max-width: 720px; margin: 20px 0 0; font-size: 1.13rem; opacity: .92; }
+    .layout { display: grid; grid-template-columns: 230px 1fr; gap: 42px; padding: 42px 24px 80px; }
+    nav { position: sticky; top: 20px; align-self: start; }
+    nav strong { display: block; margin-bottom: 8px; font-size: .85rem; letter-spacing: .08em; color: var(--muted); }
+    nav a { display: block; padding: 7px 0; color: var(--ink); text-decoration: none; }
+    nav a:hover { color: var(--green); }
+    main { min-width: 0; }
+    section { margin-bottom: 62px; scroll-margin-top: 28px; }
+    h2 { margin: 0 0 18px; font-size: 1.8rem; line-height: 1.3; }
+    h3 { margin: 30px 0 12px; font-size: 1.2rem; }
+    p { margin: 10px 0 16px; }
+    ul, ol { padding-left: 1.45rem; }
+    li + li { margin-top: .45rem; }
+
+    .card, .note, .warning {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      box-shadow: 0 8px 30px rgba(35, 67, 48, .06);
+    }
+    .note { border-left: 5px solid var(--green); }
+    .warning { border-left: 5px solid #d69c18; background: #fffdf6; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .step {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .step-num {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      color: white;
+      background: var(--green);
+      border-radius: 50%;
+      font-weight: 800;
+    }
+    .step h3 { margin: 4px 0 5px; }
+    .step p { margin: 0; }
+    .shot { margin: 22px 0 8px; }
+    .shot img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 1px solid #cad4cd;
+      border-radius: 14px;
+      box-shadow: 0 12px 34px rgba(16, 42, 28, .12);
+    }
+    figcaption { margin-top: 9px; color: var(--muted); font-size: .9rem; }
+    .timer-shot img { max-width: 500px; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); }
+    th, td { padding: 13px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #e9f4ed; }
+    pre {
+      overflow-x: auto;
+      margin: 12px 0 18px;
+      padding: 17px 18px;
+      color: #ecfff4;
+      background: var(--code);
+      border-radius: 12px;
+      line-height: 1.55;
+    }
+    kbd { padding: 2px 7px; border: 1px solid #bbc7bf; border-bottom-width: 2px; border-radius: 5px; background: white; }
+    .site-footer {
+      color: white;
+      text-align: center;
+      background: #030b1b;
+      border-top: 1px solid #142d50;
+    }
+    .footer-art {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 2.5 / 1;
+      object-fit: cover;
+    }
+    .footer-meta {
+      padding: 22px 24px 26px;
+      color: #c9d6e8;
+      background: linear-gradient(180deg, #06142e, #030b1b);
+      font-size: .92rem;
+      letter-spacing: .03em;
+    }
+
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      .hero-inner { grid-template-columns: 1fr 120px; gap: 24px; }
+      nav { position: static; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+      nav a { display: inline-block; margin-right: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+    @media print {
+      .hero { padding: 28px 0; }
+      .layout { display: block; padding: 24px 0; }
+      nav { display: none; }
+      section { break-inside: avoid; }
+      .shot img { box-shadow: none; }
+    }
+    @media (max-width: 560px) {
+      .hero { padding-top: 38px; }
+      .hero-inner { grid-template-columns: 1fr; }
+      .app-logo { width: 112px; grid-row: 1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">WINDOWS / OBS / STREAM DECK</p>
+        <h1>Pomodoro Timer<br>操作マニュアル</h1>
+        <p class="lead">配信画面に載せるタイマーの基本操作から、Stream Deckで開始・停止・リセット・時間設定を行う方法までを解説します。</p>
+      </div>
+      <img class="app-logo" src="assets/logo.png" alt="Pomodoro Timer アプリロゴ" width="210" height="210">
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav aria-label="目次">
+      <strong>目次</strong>
+      <a href="#prepare">1. 準備と起動</a>
+      <a href="#basic">2. 基本操作</a>
+      <a href="#settings">3. 設定メニュー</a>
+      <a href="#obs">4. OBSで使う</a>
+      <a href="#streamdeck">5. Stream Deck連携</a>
+      <a href="#commands">6. コマンド一覧</a>
+      <a href="#trouble">7. トラブル対処</a>
+    </nav>
+
+    <main>
+      <section id="prepare">
+        <h2>1. 準備と起動</h2>
+        <div class="note">
+          <strong>必要なファイル</strong><br>
+          <code>PomodoroTimer.exe</code> と、必要に応じて <code>background.png</code>、<code>timer.mp3</code> を同じフォルダーへ置きます。初回終了時に設定ファイル <code>pomodoro.ini</code> が同じ場所へ保存されます。
+        </div>
+        <ol>
+          <li><code>PomodoroTimer.exe</code> をダブルクリックします。</li>
+          <li>緑色の正方形ウィンドウと残り時間が表示されたら起動完了です。</li>
+          <li>アプリは二重起動しません。コマンド付きで再実行した場合は、起動済みタイマーを操作します。</li>
+        </ol>
+        <figure class="shot timer-shot">
+          <img src="assets/pomodoro-main.png" alt="25分を表示したPomodoro Timerのメイン画面" width="500" height="500">
+          <figcaption>再ビルド後の実機画面。25分設定・開始・停止・リセットの連携テストを完了しています。</figcaption>
+        </figure>
+      </section>
+
+      <section id="basic">
+        <h2>2. 基本操作</h2>
+        <div class="grid">
+          <div class="card"><strong>開始・停止</strong><p>マウスをウィンドウ内へ移動すると操作ボタンが現れます。「スタート」または「ストップ」を押します。</p></div>
+          <div class="card"><strong>リセット</strong><p>「リセット」を押すと、最後に設定した開始時間へ戻り、停止します。</p></div>
+          <div class="card"><strong>時間を直接入力</strong><p>停止中に時間表示をクリックし、時刻を入力して <kbd>Enter</kbd>。取り消す場合は <kbd>Esc</kbd> を押します。</p></div>
+          <div class="card"><strong>ウィンドウを移動</strong><p>ボタンや時間表示以外の背景部分を左ドラッグします。タイトルバーはありません。</p></div>
+        </div>
+        <h3>入力できる時間形式</h3>
+        <table>
+          <thead><tr><th>入力例</th><th>解釈</th></tr></thead>
+          <tbody>
+            <tr><td><code>25:00</code> / <code>2500</code></td><td>25分00秒</td></tr>
+            <tr><td><code>1:30:00</code> / <code>013000</code></td><td>1時間30分00秒</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="settings">
+        <h2>3. 設定メニュー</h2>
+        <p>タイマー内を右クリックすると、次の項目を変更できます。設定は終了時に <code>pomodoro.ini</code> へ保存されます。</p>
+        <ul>
+          <li><strong>フォント...</strong>：時間表示のフォント、サイズ、スタイルを変更。</li>
+          <li><strong>アラーム音を再生</strong>：0秒になったときの通知音を有効／無効化。</li>
+          <li><strong>最前面に表示</strong>：ほかのウィンドウより手前に表示。</li>
+          <li><strong>縮小表示</strong>：500 × 500 pxから250 × 250 pxへ切り替え。</li>
+          <li><strong>終了</strong>：設定を保存してアプリを終了。</li>
+        </ul>
+      </section>
+
+      <section id="obs">
+        <h2>4. OBSで使う</h2>
+        <ol>
+          <li>OBSのソースで「ウィンドウキャプチャ」を追加します。</li>
+          <li>ウィンドウに「Pomodoro Timer」を選択します。</li>
+          <li>緑背景を透明にする場合は、ソースへ「クロマキー」フィルターを追加し、キー色を緑にします。</li>
+          <li><code>background.png</code> をEXEと同じフォルダーに置いた場合は、その画像が背景として優先されます。</li>
+        </ol>
+      </section>
+
+      <section id="streamdeck">
+        <h2>5. Stream Deckから操作する</h2>
+        <div class="warning">
+          <strong>先にタイマー本体を起動してください。</strong><br>
+          Stream Deckの各キーは起動済みのタイマーへ命令を送ります。タイマーが起動していない場合は操作できません。
+        </div>
+
+        <div class="step"><span class="step-num">1</span><div><h3>操作ページを開く</h3><p>Stream Deckアプリで使用するプロファイルを選び、ページ4を開きます。</p></div></div>
+        <div class="step"><span class="step-num">2</span><div><h3>「開く」を4個配置</h3><p>右側のアクション一覧から「システム」を展開し、「開く」を空いている4つのキーへドラッグします。「アプリケーションを開く」ではなく、引数を含むコマンドを書ける「開く」を使用します。</p></div></div>
+        <div class="step"><span class="step-num">3</span><div><h3>タイトルとコマンドを入力</h3><p>各キーを選択し、「タイトル」と「App/ファイル」を下表のとおり設定します。EXEのパスは実際の配置先へ読み替えてください。</p></div></div>
+
+        <table>
+          <thead><tr><th>キー名</th><th>App/ファイルに入力する内容</th><th>動作</th></tr></thead>
+          <tbody>
+            <tr><td>開始</td><td><code>"C:\配置先\PomodoroTimer.exe" /start</code></td><td>カウントダウン開始</td></tr>
+            <tr><td>停止</td><td><code>"C:\配置先\PomodoroTimer.exe" /stop</code></td><td>現在値で停止</td></tr>
+            <tr><td>リセット</td><td><code>"C:\配置先\PomodoroTimer.exe" /reset</code></td><td>設定済み開始時間へ戻す</td></tr>
+            <tr><td>25分</td><td><code>"C:\配置先\PomodoroTimer.exe" /set 2500</code></td><td>25分へ設定して停止</td></tr>
+          </tbody>
+        </table>
+
+        <p class="note"><strong>パスに空白がある場合</strong><br>EXEの絶対パス全体を半角のダブルクォーテーション <code>"</code> で囲み、その後ろに半角スペースと引数を書きます。</p>
+
+        <h3>時間設定と開始／停止を1キーで行う</h3>
+        <p><code>/set</code> は <code>/start</code>、<code>/stop</code>、<code>/reset</code> のいずれかと同時に指定できます。Stream Deckの「開く」アクションへ複合コマンドを登録すると、時間の更新とタイマー状態の設定を1回のキー操作で行えます。</p>
+        <table>
+          <thead><tr><th>登録例</th><th>実行結果</th></tr></thead>
+          <tbody>
+            <tr><td><code>"C:\配置先\PomodoroTimer.exe" /start /set 25:00</code></td><td>25分に更新し、そのままカウントダウンを開始</td></tr>
+            <tr><td><code>"C:\配置先\PomodoroTimer.exe" /reset /set 25:00</code></td><td>開始時間と残り時間を25分に更新し、停止状態にする</td></tr>
+          </tbody>
+        </table>
+        <p><code>/set 25:00 /start</code> のように指定しても結果は同じです。複合指定では記述順に実行するのではなく、時間を更新してから指定された状態へ移行します。<code>/click</code> と <code>/set</code> は同時に指定できません。</p>
+
+        <figure class="shot">
+          <img src="assets/streamdeck-overview.png" alt="Stream Deckのページ4に開始、停止、リセット、25分の4キーを設定した画面" width="852" height="773">
+          <figcaption>完成例：ページ4の上段に「開始」「停止」「リセット」「25分」を配置。</figcaption>
+        </figure>
+        <figure class="shot">
+          <img src="assets/streamdeck-set-25.png" alt="Stream Deckの25分キーにset 2500コマンドを入力した設定画面" width="852" height="773">
+          <figcaption>「25分」キーの設定例。画面下部の説明欄で、EXEパスに <code>/set 2500</code> が続いていることを確認します。</figcaption>
+        </figure>
+
+        <div class="step"><span class="step-num">4</span><div><h3>動作確認</h3><p>Pomodoro Timerを起動した状態で「25分」→「開始」→「停止」→「リセット」の順に押します。25:00へ設定、カウントダウン開始、値を保持して停止、25:00へ復帰できれば完了です。</p></div></div>
+      </section>
+
+      <section id="commands">
+        <h2>6. コマンド一覧</h2>
+        <pre><code>PomodoroTimer.exe /start
+PomodoroTimer.exe /stop
+PomodoroTimer.exe /click
+PomodoroTimer.exe /reset
+PomodoroTimer.exe /set 2500
+PomodoroTimer.exe /start /set 25:00
+PomodoroTimer.exe /reset /set 25:00</code></pre>
+        <p><code>/click</code> は開始／停止を交互に切り替えます。<code>/set</code> の時間には画面入力と同じ形式を使用できます。<code>/start</code>、<code>/stop</code>、<code>/reset</code> と <code>/set</code> の指定順は問いません。</p>
+      </section>
+
+      <section id="trouble">
+        <h2>7. トラブル対処</h2>
+        <table>
+          <thead><tr><th>症状</th><th>確認すること</th></tr></thead>
+          <tbody>
+            <tr><td>「タイマーが起動していません」と表示される</td><td>先に引数なしで <code>PomodoroTimer.exe</code> を起動します。</td></tr>
+            <tr>
+              <td>Stream Deckを押しても反応しない</td>
+              <td>
+                <p>まず「App/ファイル」のEXEパス、引用符、引数前の半角スペースを確認します。移動・再ビルドでEXEの場所が変わった場合はパスを更新します。</p>
+                <p>それでも直らない場合は、見えないところでタイマーが複数起動している可能性があります。次の手順で起動し直してください。</p>
+                <ol>
+                  <li>キーボードの <kbd>Ctrl</kbd>＋<kbd>Shift</kbd>＋<kbd>Esc</kbd> を同時に押して、「タスク マネージャー」を開きます。</li>
+                  <li>一覧から「PomodoroTimer」または「PomodoroTimer.exe」を探します。見つからない場合は「詳細」を押して一覧を広げます。</li>
+                  <li>見つけた「PomodoroTimer」を1つずつ選び、「タスクを終了する」を押します。複数ある場合は、すべて終了します。</li>
+                  <li>一覧から「PomodoroTimer」がなくなったことを確認します。</li>
+                  <li>普段使っている <code>PomodoroTimer.exe</code> をダブルクリックして起動し、もう一度Stream Deckのキーを押します。</li>
+                </ol>
+                <p><strong>注意：</strong>「PomodoroTimer」以外の項目は終了しないでください。強制終了した場合、直前に変更した設定が保存されないことがあります。</p>
+              </td>
+            </tr>
+            <tr><td>時間形式エラーになる</td><td><code>MM:SS</code>、<code>HH:MM:SS</code>、<code>MMSS</code>、<code>HHMMSS</code> のいずれかを指定し、0秒は避けます。</td></tr>
+            <tr><td>OBSにタイマーが出ない</td><td>Pomodoro Timerを起動後、ウィンドウキャプチャの対象を選び直します。</td></tr>
+            <tr><td>音が鳴らない</td><td>右クリックメニューの「アラーム音を再生」と、EXEと同じフォルダーにある <code>timer.mp3</code> を確認します。</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+      <img class="footer-art" src="assets/footer-mars-to-earth.jpg" width="1983" height="793" alt="火星から、昼のハワイと夜景に輝く日本が見える地球へ向かって飛ぶロケット">
+    <div class="footer-meta">Pomodoro Timer 操作マニュアル — 更新日 2026-09-04</div>
+  </footer>
+</body>
+</html>
