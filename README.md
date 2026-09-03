@@ -56,7 +56,7 @@ dotnet publish src\PomodoroTimer\PomodoroTimer.csproj -c Release -r win-x64 --se
 ### 配布ZIPの作成
 
 タグを付けたコミットで次のコマンドを実行すると、自己完結型の単一exe、標準の画像・通知音、`manual`
-フォルダーをまとめた `artifacts/mmc_pomodoro_timer_タグ_YYMMDD_HHMM.zip`（日時は日本時間）を作成します。
+フォルダー、`LICENSE` をまとめた `artifacts/mmc_pomodoro_timer_タグ_YYMMDD_HHMM.zip`（日時は日本時間）を作成します。
 
 ```powershell
 .\tools\package.ps1
@@ -68,6 +68,20 @@ dotnet publish src\PomodoroTimer\PomodoroTimer.csproj -c Release -r win-x64 --se
 作成されるファイル名は、たとえば `mmc_pomodoro_timer_v1.0.0_260904_0145.zip` です。ZIPはActionsの
 成果物に保存され、そのタグのGitHub Releaseにも添付されます。
 
+#### 開発者向けリリース手順
+
+リリース対象の変更をコミットした後、そのコミットにバージョンタグを付けてGitHubへpushします。
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+pushしたタグを起点として、GitHub Actionsが配布ZIPをビルドします。リリースごとに `v1.0.1` のように
+新しいバージョン番号を指定してください。
+
 ## ライセンス
 
 このプロジェクトは MIT License のもとで公開されています。
+個人利用・仕事での利用を問わず、無料で使ったり、コピー・変更・再配布したりできます。
+再配布する場合は、元の著作権表示と MIT License の文章を一緒に残してください。

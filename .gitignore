@@ -6,6 +6,7 @@
 # Published packages
 dist/
 dist-single/
+artifacts/
 *.zip
 
 # Per-user runtime settings

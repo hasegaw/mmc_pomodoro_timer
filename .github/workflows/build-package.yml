@@ -1,0 +1,55 @@
+name: Build Windows package
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build package
+        id: package
+        shell: pwsh
+        run: |
+          $archive = & ./tools/package.ps1 -VersionTag "${{ github.ref_name }}"
+          $archivePath = $archive[-1]
+          $archiveName = [IO.Path]::GetFileNameWithoutExtension($archivePath)
+          "path=$archivePath" >> $env:GITHUB_OUTPUT
+          "name=$archiveName" >> $env:GITHUB_OUTPUT
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Attach package to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          gh release view "${{ github.ref_name }}" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "${{ github.ref_name }}" $env:ARCHIVE_PATH --clobber
+          }
+          else {
+            gh release create "${{ github.ref_name }}" $env:ARCHIVE_PATH --generate-notes
+          }
