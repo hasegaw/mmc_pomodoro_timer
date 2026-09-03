@@ -24,7 +24,18 @@ public static class TimerText
             return false;
         }
 
-        string[] parts = text.Trim().Split(':');
+        string normalized = text.Trim();
+        if (!normalized.Contains(':'))
+        {
+            normalized = normalized.Length switch
+            {
+                4 => $"{normalized[..2]}:{normalized[2..]}",
+                6 => $"{normalized[..2]}:{normalized[2..4]}:{normalized[4..]}",
+                _ => normalized
+            };
+        }
+
+        string[] parts = normalized.Split(':');
         if (parts.Length is not (2 or 3) ||
             parts.Any(part => part.Length == 0 || !part.All(char.IsAsciiDigit)))
         {

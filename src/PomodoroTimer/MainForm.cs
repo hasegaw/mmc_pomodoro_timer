@@ -7,6 +7,9 @@ namespace PomodoroTimer;
 internal sealed class MainForm : Form
 {
     private const string WindowTitle = "Pomodoro Timer";
+    private const string AppIconResourceName = "PomodoroTimer.AppIcon.ico";
+    private const int NormalClientLength = 500;
+    private const int CompactClientLength = 250;
     private const int WmNcLButtonDown = 0x00A1;
     private const int HtCaption = 0x0002;
     private static readonly Color ChromaGreen = Color.FromArgb(0, 255, 0);
@@ -25,10 +28,14 @@ internal sealed class MainForm : Form
     private readonly System.Windows.Forms.Timer _uiTimer;
     private readonly System.Windows.Forms.Timer _hoverTimer;
     private readonly ContextMenuStrip _contextMenu;
+    private readonly ToolStripMenuItem _playAlarmMenuItem;
+    private readonly ToolStripMenuItem _alwaysOnTopMenuItem;
+    private readonly ToolStripMenuItem _compactModeMenuItem;
     private readonly AlertMediaPlayer _player = new();
     private readonly string _iniPath = Path.Combine(AppContext.BaseDirectory, "pomodoro.ini");
     private readonly string? _alertPath = FindAlertPath();
     private readonly IniSettings _settings;
+    private readonly Icon? _windowIcon;
 
     private Image? _backgroundImage;
     private Font _displayFont;
@@ -45,9 +52,16 @@ internal sealed class MainForm : Form
         _startDuration = _settings.StartDuration;
         _remaining = _startDuration;
         _displayFont = CreateFont(_settings.FontFamily, _settings.FontSize, _settings.FontStyle);
+        _windowIcon = LoadWindowIcon();
 
         Text = WindowTitle;
         Name = "PomodoroTimerWindow";
+        ShowIcon = true;
+        ShowInTaskbar = true;
+        if (_windowIcon is not null)
+        {
+            Icon = _windowIcon;
+        }
         ClientSize = new Size(500, 500);
         FormBorderStyle = FormBorderStyle.None;
         MaximizeBox = false;
@@ -55,6 +69,7 @@ internal sealed class MainForm : Form
         AutoScaleMode = AutoScaleMode.None;
         BackColor = ChromaGreen;
         StartPosition = FormStartPosition.CenterScreen;
+        TopMost = _settings.AlwaysOnTop;
         DoubleBuffered = true;
 
         _timeLabel = new Label
@@ -107,6 +122,26 @@ internal sealed class MainForm : Form
 
         _contextMenu = new ContextMenuStrip();
         _contextMenu.Items.Add("フォント...", null, (_, _) => ChooseFont());
+        _playAlarmMenuItem = new ToolStripMenuItem("アラーム音を再生")
+        {
+            CheckOnClick = true,
+            Checked = _settings.PlayAlarm
+        };
+        _contextMenu.Items.Add(_playAlarmMenuItem);
+        _alwaysOnTopMenuItem = new ToolStripMenuItem("最前面に表示")
+        {
+            CheckOnClick = true,
+            Checked = _settings.AlwaysOnTop
+        };
+        _alwaysOnTopMenuItem.CheckedChanged += (_, _) => TopMost = _alwaysOnTopMenuItem.Checked;
+        _contextMenu.Items.Add(_alwaysOnTopMenuItem);
+        _compactModeMenuItem = new ToolStripMenuItem("縮小表示")
+        {
+            CheckOnClick = true,
+            Checked = _settings.CompactMode
+        };
+        _compactModeMenuItem.CheckedChanged += (_, _) => ApplyCompactMode(_compactModeMenuItem.Checked);
+        _contextMenu.Items.Add(_compactModeMenuItem);
         _contextMenu.Items.Add(new ToolStripSeparator());
         _contextMenu.Items.Add("終了", null, (_, _) => Close());
         ContextMenuStrip = _contextMenu;
@@ -124,9 +159,14 @@ internal sealed class MainForm : Form
         Load += (_, _) => RestoreWindowLocation();
         FormClosing += (_, _) => SaveSettings();
         FormClosed += (_, _) => DisposeResources();
-        Resize += (_, _) => Invalidate();
+        Resize += (_, _) =>
+        {
+            ApplyResponsiveLayout();
+            Invalidate();
+        };
 
         LoadBackgroundImage();
+        ApplyCompactMode(_settings.CompactMode);
         UpdateDisplay();
         UpdateOverlayVisibility();
     }
@@ -177,23 +217,45 @@ internal sealed class MainForm : Form
 
     private void ToggleTimer()
     {
+        if (_running)
+        {
+            StopTimer();
+        }
+        else
+        {
+            StartTimer();
+        }
+    }
+
+    private void StartTimer()
+    {
+        if (_running)
+        {
+            return;
+        }
+
         if (_remaining <= TimeSpan.Zero)
         {
             _remaining = _startDuration;
         }
 
-        if (_running)
+        _deadlineUtc = DateTime.UtcNow + _remaining;
+        _running = true;
+        UpdateStartStopButton();
+        UpdateDisplay();
+    }
+
+    private void StopTimer()
+    {
+        if (!_running)
         {
-            UpdateCountdown();
-            _running = false;
-        }
-        else
-        {
-            _deadlineUtc = DateTime.UtcNow + _remaining;
-            _running = true;
+            return;
         }
 
+        UpdateCountdown();
+        _running = false;
         UpdateStartStopButton();
+        UpdateDisplay();
     }
 
     private void ResetTimer()
@@ -217,7 +279,10 @@ internal sealed class MainForm : Form
             _remaining = TimeSpan.Zero;
             _running = false;
             UpdateStartStopButton();
-            _player.Play(_alertPath);
+            if (_playAlarmMenuItem.Checked)
+            {
+                _player.Play(_alertPath);
+            }
         }
 
         UpdateDisplay();
@@ -237,7 +302,7 @@ internal sealed class MainForm : Form
         }
     }
 
-    private static Font FitFont(string text, Size bounds, Font source)
+    private static Font FitFont(string text, Size bounds, Font source, float minimumSize = 8f)
     {
         float size = source.Size;
         using var probe = new Font(source.FontFamily, size, source.Style);
@@ -249,7 +314,7 @@ internal sealed class MainForm : Form
 
         float scale = Math.Min((bounds.Width - 10f) / Math.Max(1, measured.Width),
             (bounds.Height - 10f) / Math.Max(1, measured.Height));
-        return new Font(source.FontFamily, Math.Max(8, size * scale), source.Style);
+        return new Font(source.FontFamily, Math.Max(minimumSize, size * scale), source.Style);
     }
 
     private void ApplyEditorFont(Font font)
@@ -309,17 +374,14 @@ internal sealed class MainForm : Form
         e.Handled = true;
         if (!TimerText.TryParse(_timeEditor.Text, out TimeSpan value))
         {
-            MessageBox.Show(this, "時刻は MM:SS または HH:MM:SS 形式で、1秒以上を入力してください。",
+            MessageBox.Show(this, "時刻は MM:SS、HH:MM:SS、MMSS、HHMMSS のいずれかで、1秒以上を入力してください。",
                 WindowTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
             _timeEditor.Focus();
             _timeEditor.SelectAll();
             return;
         }
 
-        _startDuration = value;
-        _remaining = value;
-        _timeEditorHost.Visible = false;
-        UpdateDisplay();
+        SetTimer(value);
     }
 
     private void CancelTimeEdit()
@@ -330,6 +392,48 @@ internal sealed class MainForm : Form
         }
 
         _timeEditorHost.Visible = false;
+        UpdateDisplay();
+    }
+
+    internal void ExecuteCommand(AppCommand command)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(() => ExecuteCommand(command));
+            return;
+        }
+
+        if (command.Duration is TimeSpan duration)
+        {
+            SetTimer(duration);
+        }
+
+        switch (command.Kind)
+        {
+            case AppCommandKind.Start:
+                StartTimer();
+                break;
+            case AppCommandKind.Stop:
+                StopTimer();
+                break;
+            case AppCommandKind.Click:
+                ToggleTimer();
+                break;
+            case AppCommandKind.Reset:
+                ResetTimer();
+                break;
+            case AppCommandKind.Set:
+                break;
+        }
+    }
+
+    private void SetTimer(TimeSpan duration)
+    {
+        _running = false;
+        _startDuration = duration;
+        _remaining = duration;
+        _timeEditorHost.Visible = false;
+        UpdateStartStopButton();
         UpdateDisplay();
     }
 
@@ -363,7 +467,54 @@ internal sealed class MainForm : Form
         _startStopButton.Visible = visible;
     }
 
-    private void UpdateStartStopButton() => _startStopButton.Text = _running ? "ストップ" : "スタート";
+    private void UpdateStartStopButton()
+    {
+        _startStopButton.Text = _running ? "ストップ" : "スタート";
+        FitOverlayButtonFont(_startStopButton);
+    }
+
+    private void ApplyCompactMode(bool compact)
+    {
+        int length = compact ? CompactClientLength : NormalClientLength;
+        ClientSize = new Size(length, length);
+        ApplyResponsiveLayout();
+    }
+
+    private void ApplyResponsiveLayout()
+    {
+        if (_timeLabel is null)
+        {
+            return;
+        }
+
+        float scale = Math.Min((float)ClientSize.Width / NormalClientLength,
+            (float)ClientSize.Height / NormalClientLength);
+        _timeLabel.Bounds = ScaleBounds(new Rectangle(20, 155, 460, 190), scale);
+        _timeEditorHost.Bounds = _timeLabel.Bounds;
+        _resetButton.Bounds = ScaleBounds(new Rectangle(105, 400, 130, 46), scale);
+        _startStopButton.Bounds = ScaleBounds(new Rectangle(265, 400, 130, 46), scale);
+        FitOverlayButtonFont(_resetButton);
+        FitOverlayButtonFont(_startStopButton);
+        _lastDisplayTextLength = -1;
+        UpdateDisplay();
+    }
+
+    private void FitOverlayButtonFont(Button button)
+    {
+        float scale = Math.Min((float)ClientSize.Width / NormalClientLength,
+            (float)ClientSize.Height / NormalClientLength);
+        using var source = new Font("Segoe UI", Math.Max(6f, 12f * scale), FontStyle.Bold);
+        Font fitted = FitFont(button.Text, button.ClientSize, source, 5f);
+        Font previous = button.Font;
+        button.Font = fitted;
+        previous.Dispose();
+    }
+
+    private static Rectangle ScaleBounds(Rectangle bounds, float scale) => new(
+        (int)Math.Round(bounds.X * scale),
+        (int)Math.Round(bounds.Y * scale),
+        Math.Max(1, (int)Math.Round(bounds.Width * scale)),
+        Math.Max(1, (int)Math.Round(bounds.Height * scale)));
 
     private void LoadBackgroundImage()
     {
@@ -396,6 +547,25 @@ internal sealed class MainForm : Form
             .FirstOrDefault(File.Exists);
     }
 
+    private static Icon? LoadWindowIcon()
+    {
+        try
+        {
+            using Stream? stream = typeof(MainForm).Assembly.GetManifestResourceStream(AppIconResourceName);
+            if (stream is null)
+            {
+                return Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+            }
+
+            using var source = new Icon(stream);
+            return (Icon)source.Clone();
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException)
+        {
+            return Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+        }
+    }
+
     private void RestoreWindowLocation()
     {
         if (_settings.WindowLocation is not Point location)
@@ -422,6 +592,9 @@ internal sealed class MainForm : Form
         _settings.FontFamily = _displayFont.FontFamily.Name;
         _settings.FontSize = _displayFont.Size;
         _settings.FontStyle = _displayFont.Style;
+        _settings.PlayAlarm = _playAlarmMenuItem.Checked;
+        _settings.AlwaysOnTop = _alwaysOnTopMenuItem.Checked;
+        _settings.CompactMode = _compactModeMenuItem.Checked;
 
         try
         {
@@ -444,6 +617,8 @@ internal sealed class MainForm : Form
         _backgroundImage?.Dispose();
         _fittedDisplayFont?.Dispose();
         _displayFont.Dispose();
+        Icon = null;
+        _windowIcon?.Dispose();
         _player.Dispose();
         _contextMenu.Dispose();
     }

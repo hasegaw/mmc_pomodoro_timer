@@ -10,6 +10,9 @@ internal sealed class IniSettings
     public string FontFamily { get; set; } = "Segoe UI";
     public float FontSize { get; set; } = 72f;
     public FontStyle FontStyle { get; set; } = FontStyle.Bold;
+    public bool PlayAlarm { get; set; } = true;
+    public bool AlwaysOnTop { get; set; }
+    public bool CompactMode { get; set; }
 
     public static IniSettings Load(string path)
     {
@@ -70,6 +73,24 @@ internal sealed class IniSettings
             settings.FontStyle = style;
         }
 
+        if (values.TryGetValue("Alarm.Enabled", out string? alarmEnabledText) &&
+            bool.TryParse(alarmEnabledText, out bool alarmEnabled))
+        {
+            settings.PlayAlarm = alarmEnabled;
+        }
+
+        if (values.TryGetValue("Window.TopMost", out string? topMostText) &&
+            bool.TryParse(topMostText, out bool topMost))
+        {
+            settings.AlwaysOnTop = topMost;
+        }
+
+        if (values.TryGetValue("Window.Compact", out string? compactText) &&
+            bool.TryParse(compactText, out bool compact))
+        {
+            settings.CompactMode = compact;
+        }
+
         return settings;
     }
 
@@ -79,6 +100,8 @@ internal sealed class IniSettings
             [Window]
             Left={WindowLocation?.X ?? 100}
             Top={WindowLocation?.Y ?? 100}
+            TopMost={AlwaysOnTop}
+            Compact={CompactMode}
 
             [Timer]
             StartSeconds={(long)StartDuration.TotalSeconds}
@@ -87,6 +110,9 @@ internal sealed class IniSettings
             Family={FontFamily}
             Size={FontSize.ToString(CultureInfo.InvariantCulture)}
             Style={FontStyle}
+
+            [Alarm]
+            Enabled={PlayAlarm}
             """;
 
         File.WriteAllText(path, contents + Environment.NewLine);

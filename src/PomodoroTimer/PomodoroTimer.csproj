@@ -9,10 +9,12 @@
     <AssemblyName>PomodoroTimer</AssemblyName>
     <RootNamespace>PomodoroTimer</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\assets\app-icon.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\assets\app-icon.ico" LogicalName="PomodoroTimer.AppIcon.ico" />
     <None Include="..\..\assets\background.png" Link="background.png"
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest"
           ExcludeFromSingleFile="true" />
